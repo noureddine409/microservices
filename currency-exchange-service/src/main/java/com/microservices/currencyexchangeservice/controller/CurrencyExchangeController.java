@@ -1,7 +1,7 @@
 package com.microservices.currencyexchangeservice.controller;
 
-import java.math.BigDecimal;
 
+import com.microservices.currencyexchangeservice.service.CurrencyExchangeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,21 +17,21 @@ public class CurrencyExchangeController {
 	
 	@Autowired
 	private Environment environment;
+
+	@Autowired
+	private CurrencyExchangeService currencyExchangeService;
+
 	
 	@GetMapping("/from/{from}/to/{to}")
 	public CurrencyExchange retrieveExchangeValue(
 			@PathVariable("from") String from,
 			@PathVariable("to") String to
 			) {
-		
+		CurrencyExchange currencyExchange = currencyExchangeService.findByFromAndTo(from, to);
 		String env = environment.getProperty("local.server.port");
-		return CurrencyExchange.builder()
-				.id(1L)
-				.from(from)
-				.to(to)
-				.conversionMultiple(BigDecimal.valueOf(60))
-				.environment(env)
-				.build();
+		currencyExchange.setEnvironment(env);
+
+		return currencyExchange;
 	}
 	
 	
