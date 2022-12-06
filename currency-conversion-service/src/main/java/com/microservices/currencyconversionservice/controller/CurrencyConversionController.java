@@ -29,7 +29,7 @@ public class CurrencyConversionController {
         uriParams.put("from", from);
         uriParams.put("to", to);
         CurrencyConversion currencyConversion = restTemplate.getForEntity(
-                "http://localhost:8000/currency-exchange/from/{from}/to/{to}",
+                "currency-exchange-service/currency-exchange/from/{from}/to/{to}",
                 CurrencyConversion.class,
                 uriParams
         ).getBody();
