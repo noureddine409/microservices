@@ -1,0 +1,129 @@
+version: '3.7'
+
+services:
+
+  api-gateway:
+    image: noureddinelachgar/mm-api-gateway:0.0.1-SNAPSHOT
+    ports:
+      - "8765:8765"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka/
+      - spring.zipkin.base-url=http://zipkin-server:9411/
+      - spring.rabbitmq.host=rabbitmq
+      - spring.zipkin.sender.type=rabbit
+      - spring.rabbitmq.port=5672
+      - spring.rabbitmq.username=guest
+      - spring.rabbitmq.password=guest
+    networks:
+      - currency-network
+    depends_on:
+      - naming-server
+      - rabbitmq
+    container_name: api-gateway
+
+
+  currency-conversion-service:
+    image: noureddinelachgar/mm-currency-conversion-service:0.0.1-SNAPSHOT
+    ports:
+      - "8100:8100"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka/
+      - spring.zipkin.base-url=http://zipkin-server:9411/
+      - spring.rabbitmq.host=rabbitmq
+      - spring.zipkin.sender.type=rabbit
+      - spring.rabbitmq.port=5672
+      - spring.rabbitmq.username=guest
+      - spring.rabbitmq.password=guest
+    networks:
+      - currency-network
+    depends_on:
+      - naming-server
+      - rabbitmq
+    container_name: currency-conversion-service
+    build:
+      context: ./currency-conversion-service
+      dockerfile: Dockerfile
+    
+
+
+
+  currency-exchange-service:
+    image: noureddinelachgar/mm-currency-exchange-service:0.0.1-SNAPSHOT
+    ports:
+      - "8000:8000"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka/
+      - spring.zipkin.base-url=http://zipkin-server:9411/
+      - spring.rabbitmq.host=rabbitmq
+      - spring.zipkin.sender.type=rabbit
+      - spring.rabbitmq.port=5672
+      - spring.rabbitmq.username=guest
+      - spring.rabbitmq.password=guest
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=mysecretpassword
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      
+    networks:
+      - currency-network
+    depends_on:
+      - db
+      - naming-server
+      - rabbitmq
+    container_name: currency-exchange-service
+    build:
+      context: ./currency-exchange-service
+      dockerfile: Dockerfile
+
+  naming-server:
+    image: noureddinelachgar/mmv2-naming-server:0.0.1-SNAPSHOT
+    container_name: naming-server
+    build:
+      context: ./naming-server
+      dockerfile: Dockerfile
+    ports:
+      - "8761:8761"
+    networks:
+      - currency-network
+
+  zipkin-server:
+    image: openzipkin/zipkin:2.23
+    container_name: zipkin-server
+    build:
+      context: ./zipkin-server
+      dockerfile: Dockerfile
+    ports:
+      - "9411:9411"
+    networks:
+      - currency-network
+    environment:
+      - spring.rabbitmq.port=5672
+      - spring.rabbitmq.username=guest
+      - spring.rabbitmq.password=guest
+    depends_on:
+      - rabbitmq
+
+  db:
+    image: 'postgres:latest'
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+    networks:
+      - currency-network
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - currency-network
+
+networks:
+  currency-network:
